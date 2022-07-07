@@ -1,18 +1,3 @@
-const { ApolloServer, gql } = require('apollo-server')
-
-
-
-const typeDefs = gql`
-    type Course {
-        title: String
-        technology: String
-    }
-    
-    type Query {
-        getCourses: [Course]
-    }
-`;
-
 const courses = [
     {
         title: 'JavaScript Moderno Guía Definitiva Construye +10 Proyectos',
@@ -34,15 +19,9 @@ const courses = [
 
 const resolvers = {
     Query: {
-        getCourses: () => courses
+        getCourses: () => courses,
+        getTechnology: () => courses
     }
 }
 
-const server = new ApolloServer({
-    typeDefs,
-    resolvers
-});
-
-server.listen().then(({ url }) => {
-    console.log(`URL server ${url}`)
-})
+module.exports = resolvers

@@ -2,7 +2,7 @@
   "name": "crmgraphql",
   "version": "1.0.0",
   "description": "Graphql course",
-  "main": "index.ts",
+  "main": "./src/index.js",
   "scripts": {
     "start": "node .",
     "dev": "nodemon ."
