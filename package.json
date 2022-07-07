@@ -1,0 +1,18 @@
+{
+  "name": "crmgraphql",
+  "version": "1.0.0",
+  "description": "Graphql course",
+  "main": "index.ts",
+  "scripts": {
+    "start": "node .",
+    "dev": "nodemon ."
+  },
+  "author": "Julian Krochmal",
+  "license": "ISC",
+  "dependencies": {
+    "apollo-server": "^3.9.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19"
+  }
+}
