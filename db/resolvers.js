@@ -36,7 +36,32 @@ const resolvers = {
             } catch (error) {
                 console.log(error)
             }
-        }
+        },
+        getClients: async () => {
+            try {
+                const clients = await Client.find({})
+                return clients
+            } catch (error) {
+                console.log(error)
+            }
+        },
+        getClientsSeller: async (_, { }, ctx) => {
+            try {
+                const clients = await Client.find({ seller: ctx.user.id.toString() })
+                return clients
+            } catch (error) {
+                console.log(error)
+            }
+        },
+        getClientsSeller: async (_, { id }, ctx) => {
+            const client = await Client.findById(id)
+
+            if (!client) throw new Error('The client does not exist')
+
+            if (client.seller.toString() !== ctx.user.id) throw new Error('Wrong credentials')
+
+            return client
+        },
     },
     Mutation: {
         newUser: async (_, { input }) => {
@@ -98,21 +123,45 @@ const resolvers = {
 
             return "Product deleted"
         },
-        newClient: async (_, { input }) => {
+        newClient: async (_, { input }, ctx) => {
             const { email } = input
 
             const client = Client.findOne({ email })
 
             if (client) throw new Error('Client already exists')
 
+            const newClient = new Client(input)
+            newClient.seller = ctx.user.id
+
             try {
-                const newClient = new Client(input)
                 const result = await newClient.save()
                 return result
             } catch (error) {
                 console.log(error)
             }
-        }
+        },
+        updateClient: async (_, { id, input }, ctx) => {
+            let client = await Client.findById(id)
+
+            if (!client) throw new Error('Client does not exist')
+
+            if (client.seller.toString() !== ctx.user.id) throw new Error('Wrong credentials')
+
+            client = await Client.findOneAndUpdate({ _id: id }, input, { new: true })
+
+            return client
+        },
+        deleteProduct: async (_, { id }, ctx) => {
+            let client = await Client.findById(id)
+
+            if (!client) throw new Error('Client does not exist')
+
+            if (client.seller.toString() !== ctx.user.id) throw new Error('Wrong credentials')
+
+            await Client.findOneAndDelete({ _id: id })
+
+            return "Client deleted"
+        },
     }
 }
 
