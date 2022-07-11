@@ -1,11 +1,11 @@
 const User = require('../models/User')
 const Product = require('../models/Product')
+const Client = require('../models/Client')
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken')
 require('dotenv').config({ path: 'variables.env' })
 
 const createToken = (user, secret, expiresIn) => {
-
     const { id, email, name, lastname } = user
 
     return jwt.sign({ id, email, name, lastname }, secret, { expiresIn })
@@ -98,6 +98,21 @@ const resolvers = {
 
             return "Product deleted"
         },
+        newClient: async (_, { input }) => {
+            const { email } = input
+
+            const client = Client.findOne({ email })
+
+            if (client) throw new Error('Client already exists')
+
+            try {
+                const newClient = new Client(input)
+                const result = await newClient.save()
+                return result
+            } catch (error) {
+                console.log(error)
+            }
+        }
     }
 }
 
