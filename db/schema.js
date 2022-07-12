@@ -30,6 +30,31 @@ const typeDefs = gql`
         seller: ID
     }
 
+    type Order {
+        id: ID
+        order: [OrderGroup]
+        total: Float
+        client: ID
+        seller: ID
+        date: string
+        state: OrderState
+    }
+
+    type OrderGroup {
+        id: ID
+        quantity: Int
+    }
+
+    type TopClient {
+        total: Float
+        client: [Client]
+    }
+
+    type TopSeller {
+        total: Float
+        client: [User]
+    }
+
     input UserInput {
         name: String!
         lastname: String!
@@ -56,6 +81,24 @@ const typeDefs = gql`
         phone: String
     }
 
+    input OrderProductInput {
+        id: ID
+        quantity: Int
+    }
+
+    input OrderInput {
+        order: [OrderProductInput]
+        total: Float!
+        client: ID!
+        state: OrderState
+    }
+
+    enum OrderState {
+        PENDING
+        COMPLETED
+        CANCELLED
+    }
+
     type Query {
         #Users
         getUser(token: String!): User
@@ -68,6 +111,17 @@ const typeDefs = gql`
         getClients: [Client]
         getClientsSeller: [Client]
         getClient(id: ID!): Client
+
+        #Order
+        getOrders: [Order]
+        getOrdersBySeller: [Order]
+        getOrder(id: ID!): [Order]
+        getOrderByState(state: String!): [Order]
+
+        #Advanced search
+        bestClients: [TopClient]
+        bestSellers: [TopSeller]
+        searchProduct(text: String!): [Product]
     }
 
     type Mutation {
@@ -84,6 +138,11 @@ const typeDefs = gql`
         newClient(input:ClientInput): Client
         updateClient(id: ID!, input:ClientInput): Client
         deleteClient(id: ID!): String
+        
+        #Order
+        newOrder(input:OrderInput): Order
+        updateOrder(id: ID!, input:OrderInput): Order
+        deleteOrder(id: ID!): String
     }
 `;
 

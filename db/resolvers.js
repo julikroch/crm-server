@@ -1,6 +1,7 @@
 const User = require('../models/User')
 const Product = require('../models/Product')
 const Client = require('../models/Client')
+const Order = require('../models/Order')
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken')
 require('dotenv').config({ path: 'variables.env' })
@@ -62,6 +63,90 @@ const resolvers = {
 
             return client
         },
+        getOrders: async () => {
+            try {
+                const orders = new Order.find({})
+                return orders
+            } catch (error) {
+                console.log(error)
+            }
+        },
+        getOrdersBySeller: async (_, { }, ctx) => {
+            try {
+                const orders = new Order.find({ seller: ctx.user.id })
+                return orders
+            } catch (error) {
+                console.log(error)
+            }
+        },
+        getOrder: async (_, { id }, ctx) => {
+            const order = await Order.findById(id)
+
+            if (!order) throw new Error('Order does not exist')
+
+            if (order.seller.toString() !== ctx.user.id) throw new Error('Wrong credentials')
+
+            return order
+        },
+        getOrderByState: async (_, { state }, ctx) => {
+            const order = await Order.find({ seller: ctx.user.id, state })
+
+            return order
+        },
+        bestClients: async () => {
+            const clients = await Order.aggregate([
+                { $match: { state: 'COMPLETED' } },
+                {
+                    $group: {
+                        _id: '$client',
+                        total: { $sum: '$total' }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'clients',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'client'
+                    }
+                },
+                {
+                    $sort: { total: -1 }
+                }
+            ])
+            return clients
+        },
+        bestSellers: async () => {
+            const sellers = await Order.aggregate([
+                { $match: { state: 'COMPLETED' } },
+                {
+                    $group: {
+                        _id: '$seller',
+                        total: { $sum: '$total' }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'seller'
+                    }
+                },
+                {
+                    $limit: 3
+                },
+                {
+                    $sort: { total: -1 }
+                }
+            ])
+            return sellers
+        },
+        searchProduct: async (_, { text }) => {
+            const products = await Product.find({ $text: { $search: text } }).limit(10)
+
+            return products
+        }
     },
     Mutation: {
         newUser: async (_, { input }) => {
@@ -121,7 +206,7 @@ const resolvers = {
 
             await Product.findOneAndDelete({ _id: id })
 
-            return "Product deleted"
+            return 'Product deleted'
         },
         newClient: async (_, { input }, ctx) => {
             const { email } = input
@@ -160,7 +245,79 @@ const resolvers = {
 
             await Client.findOneAndDelete({ _id: id })
 
-            return "Client deleted"
+            return 'Client deleted'
+        },
+        newOrder: async (_, { input }, ctx) => {
+            const { client } = input
+
+            let clientExist = await Client.findById(client)
+
+            if (!clientExist) throw new Error('Client does not exist')
+
+            if (clientExist.seller.toString() !== ctx.user.id) throw new Error('Wrong credentials')
+
+            for await (const item of input.order) {
+                const { id } = item
+
+                const product = await Product.findById(id)
+
+                if (item.quantity > product.stock) {
+                    throw new Error(`The product ${product.name} does not have enough stock`)
+                } else {
+                    product.stock = product.stock - item.quantity
+                    await product.save()
+                }
+            }
+
+            const newOrder = new Order(input)
+            newOrder.seller = ctx.user.id
+
+            const result = await newOrder.save()
+            return result
+        },
+        updateOrder: async (_, { id, input }, ctx) => {
+
+            const { client } = input
+
+            const orderExist = await Order.findById(id)
+
+            if (!orderExist) throw new Error('Order does not exist')
+
+            const clientExist = await Client.findById(client)
+
+            if (!clientExist) throw new Error('Client does not exist')
+
+            if (clientExist.seller.toString() !== ctx.user.id) throw new Error('Wrong credentials')
+
+            if (input.order) {
+                for await (const item of input.order) {
+                    const { id } = item
+
+                    const product = await Product.findById(id)
+
+                    if (item.quantity > product.stock) {
+                        throw new Error(`The product ${product.name} does not have enough stock`)
+                    } else {
+                        product.stock = product.stock - item.quantity
+                        await product.save()
+                    }
+                }
+            }
+
+            const result = await Order.findOneAndUpdate({ _id: id }, input, { new: true })
+            return result
+        },
+        deleteOrder: async (_, { id }, ctx) => {
+
+            const orderExist = await Order.findById(id)
+
+            if (!orderExist) throw new Error('Order does not exist')
+
+            if (clientExist.seller.toString() !== ctx.user.id) throw new Error('Wrong credentials')
+
+            await Order.findOneAndDelete({ _id: id })
+
+            return 'Order deleted'
         },
     }
 }

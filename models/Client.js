@@ -30,10 +30,6 @@ const ClientSchema = mongoose.Schema({
         type: Date,
         default: Date.now()
     },
-    creationDate: {
-        type: Date,
-        default: Date.now()
-    },
     seller: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
